@@ -1,0 +1,84 @@
+This extension of LIBLINEAR supports distributed training for the following two
+solvers:
+
+	 L2-regularized logistic regression (primal)
+	 L2-regularized L2-loss support vector classification (primal)
+
+
+Step-by-step Guide
+==================
+
+This extension has been tested only on Ubuntu 13.04. Other Unix-like systems
+should also be applicable. We assume that:
+
+    - You are a LIBLINEAR user who is trying to run it on a distributed
+      environment. 
+
+    - Your system can compile and run LIBLINEAR.
+
+    - You have three machines, M0, M1, and M2, you are on M0(localhost). 
+    
+    - ``heart_scale'' is the dataset you want to train.
+    
+    - All machines have the same working directory.
+
+Now see the following example to prepare the environment and learn the usage.
+
+1.  Install Open MPI on all machines.
+
+    $ apt-get install openmpi-bin libopenmpi-dev
+
+2.  Prepare a machine file, which contains hostnames (or ip addresses) of all 
+    machines:
+
+    localhost
+    M1
+    M2
+
+    Note: Each line should represent an unique machine.
+
+3.  Compile distributed LIBLINEAR.
+
+    $ mpirun -n 3 --machinefile <machinefile> make
+
+4.  Use ``split.py'' to split the dataset to all machines by the number of
+    instance. Python 2 or 3 is required.
+
+    $ ./split.py <machinefile> heart_scale heart_scale.sub
+
+    ``heart_scale.sub'' on each machine has 270*(1/3) = 90 instances.
+
+    Note: Please name your local host as ``localhost'' or ``127.0.0.1'' in the
+    machinefile to ensure that the data is directly moved within the local
+    host.
+
+5.  Distributed training.
+
+    $ mpirun -n 3 --machinefile <machinefile> ./train -s 0 heart_scale.sub
+
+6.  Distributed Prediction.
+
+    $ mpirun -n 3 --machinefile <machinefile> ./predict heart_scale.sub heart_scale.sub.model heart_scale.out
+
+Miscellaneous
+=============
+
+1.  If you have multiple network interfaces on your master, then you need to
+    specify the interface you want to use. For example, if you have two
+    interfaces:
+
+        eth0: the intranet on which you want to run OpenMPI
+        eth1: connected to the Internet
+    
+    You need to add "--mca btl_tcp_if_include eth0" to tell "mpirun" that you
+    want to use eth0. For example:
+
+    $ mpirun -n 3 --machinefile <machinefile> --mca btl_tcp_if_include eth0 ./train -s 0 heart_scale.sub
+
+
+Additional Information
+======================
+
+For any questions and comments, please send your email to:
+
+  cjlin@csie.ntu.edu.tw
